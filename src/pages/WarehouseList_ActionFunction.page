@@ -1,0 +1,41 @@
+<apex:page controller="WarehouseList" extensions="WarehouseDataInstall">
+    <button onclick="loadTestData()">Load Test Rows</button>
+    <button onclick="delTestData()">Delete Test Rows</button>
+    
+    <apex:form >
+    
+    <apex:actionFunction name="updateQuantity" action="{!updateQuantity}" rerender="output">
+        <apex:param name="recordId" value="" assignTo="{!recordId}"/>
+        <apex:param name="quantity" value="" assignTo="{!quantity}"/>
+    </apex:actionFunction>
+    
+    <apex:outputPanel id="output"><apex:outputText value="{!output}" /></apex:outputPanel>
+    
+    <apex:pageBlock >
+        <apex:pageBlockTable value="{!merchandise}" var="m">
+            <apex:column >
+                <apex:outputField value="{!m.Name}" />
+            </apex:column>
+            <apex:column >
+                <apex:outputField value="{!m.Price__c}" />
+            </apex:column>
+            <apex:column >
+                <apex:inputField value="{!m.Quantity__c}"
+                    onblur="updateQuantity('{!m.Id}',this.value)"/>
+            </apex:column>
+        </apex:pageBlockTable>
+    </apex:pageBlock>
+    </apex:form>
+    
+    
+    <script>
+    function loadTestData() {
+        WarehouseDataInstall.insertLotsOfRows(function(res,mes){alert('Loaded');});
+    }
+    
+    function delTestData() {
+        WarehouseDataInstall.deleteExtraRows(function(res,mes){alert('Deleted');});
+    }
+    </script>
+    
+</apex:page>

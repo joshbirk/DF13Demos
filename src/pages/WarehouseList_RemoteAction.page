@@ -1,0 +1,35 @@
+<apex:page controller="WarehouseList_Remote" readOnly="true" extensions="WarehouseDataInstall">
+<script>    
+    function updateQuantity(recordId,quantity) {
+        WarehouseList_Remote.updateQuantity(recordId,quantity,function(res,mes) {
+            document.getElementById("output").innerHTML = res;
+        });
+    }
+
+    function loadTestData() {
+        WarehouseDataInstall.insertLotsOfRows(function(res,mes){alert('Loaded');});
+    }
+
+    function delTestData() {
+        WarehouseDataInstall.deleteExtraRows(function(res,mes){alert('Deleted');});
+    }
+</script>
+    <div id="output">
+    <button onclick="loadTestData()">Load Test Rows</button>
+    <button onclick="delTestData()">Delete Test Rows</button>
+    </div>
+    
+    <apex:pageBlock >
+        <apex:pageBlockTable value="{!merchandise}" var="m">
+            <apex:column >
+                <apex:outputField value="{!m.Name}" />
+            </apex:column>
+            <apex:column >
+                <apex:outputField value="{!m.Price__c}" />
+            </apex:column>
+            <apex:column >
+                <input value="{!m.Quantity__c}" onblur="updateQuantity('{!m.Id}',this.value)" />
+            </apex:column>
+        </apex:pageBlockTable>
+    </apex:pageBlock>   
+</apex:page>

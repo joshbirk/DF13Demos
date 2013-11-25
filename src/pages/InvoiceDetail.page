@@ -1,0 +1,10 @@
+<apex:page StandardController="Invoice__c" >
+    <apex:composition template="WarehouseTemplate">
+        <apex:define name="detail">
+            <apex:detail subject="{!Invoice__c.Id}" />
+        </apex:define>
+        <apex:define name="footer">
+           
+        </apex:define>
+    </apex:composition>
+</apex:page>

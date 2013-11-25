@@ -1,0 +1,6 @@
+<apex:page StandardController="Invoice__c" showHeader="false">
+    <apex:pageBlock >
+        <apex:canvasApp developerName="InventoryLocation" applicationName="InventoryLocation"
+            parameters="{invoiceId:'{!Invoice__c.Id}'}" />
+    </apex:PageBlock>   
+</apex:page>

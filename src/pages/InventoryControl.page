@@ -1,0 +1,192 @@
+<apex:page sidebar="false" Controller="InventoryControlRemote">
+<head >
+<link href="https://extjs.cachefly.net/ext/gpl/4.2.0/resources/css/ext-all.css" rel="stylesheet" />
+<script src="https://extjs.cachefly.net/ext/gpl/4.2.0/ext-all.js"></script>
+
+<script src="{!URLFOR($Resource.InventoryControl,'Merchandise.js')}"></script>
+<script src="{!URLFOR($Resource.InventoryControl,'Inventory.js')}"></script>
+<script src="{!URLFOR($Resource.InventoryControl,'Control.js')}"></script>
+<style>
+	li { padding-left: 10px; margin-left: 10px; }
+</style>
+
+<script>
+/*global Ext:false */
+Ext.ns("Ext.Visualforce");
+Ext.onReady(function() {
+	inventory = Ext.create('Inventory');
+	chartdata = Ext.create('ReductionData');
+	inventory_grid = Ext.create('InventoryGrid',
+		{ 
+			store: inventory, 
+			renderTo: Ext.get('datagrid'),
+			tbar: [{
+			            text: 'Add Merchandise',
+			            handler : function(){
+							new_merchandise_form.getForm().reset();
+							new_merchandise_window.show();
+						}
+			        },
+					{
+					    text: 'Remove Merchandise',
+			            handler : function(){
+			                if(inventory_grid.getSelectionModel().getSelection() && inventory_grid.getSelectionModel().getSelection()[0]) {
+								if(merchandise_form.getValues().Id == inventory_grid.getSelectionModel().getSelection()[0].data.Id) {
+									merchandise_form.getForm().reset();
+								}
+								InventoryControlRemote.removeMerchandise(inventory_grid.getSelectionModel().getSelection()[0].data.Id,
+								function(res,mes){
+									inventory.remove(inventory_grid.getSelectionModel().getSelection());
+								})
+							}
+						}
+			        }]
+	 	});
+	    new_merchandise_form = Ext.create('Ext.form.FormPanel',{
+			width:325,
+			height:100,
+	        frame:true,
+			items: [
+	            new Ext.form.TextField({
+	                id:"Name",
+	                name:"Name",
+	                width:275,
+	                allowBlank:false,
+					fieldLabel: 'Name',
+	                blankText:"Product Name"
+	            })
+	        ],
+	        buttons: [
+	            {
+					text:"Cancel",
+					handler: function() {
+						new_merchandise_form.getForm().reset();
+						new_merchandise_window.close();
+					}
+				},
+	            {
+					text:"Save",
+					handler: function() {
+						record = new_merchandise_form.getValues();
+						console.log(record);
+						InventoryControlRemote.newMerchandise(record.Name,function(res,mes){
+							inventory.add(res);
+							new_merchandise_form.getForm().reset();
+							new_merchandise_window.close();
+						})
+					}
+				}
+	        ]
+	    });
+	new_merchandise_window = Ext.create("Ext.Window",{
+		    title : 'New Item',
+		    width : 325,                            
+		    height: 125,
+		    closable : true,                           
+		    modal : true,
+			items: new_merchandise_form
+		});
+	merchandise_form = Ext.create('MerchandiseForm',{
+		renderTo: Ext.get('form'),
+		height:379,
+		buttons: [{
+	        text: 'Submit',
+	        handler: function () {
+	            // The getForm() method returns the Ext.form.Basic instance:
+	            var form = this.up('form').getForm();
+	            if (form.isValid()) {
+	                record = form.getValues();
+					console.log(record.Id);
+					var index = inventory.find('Id',record.Id);
+					var merch = inventory.getAt(index);
+					merch.set(record); //update local store
+	            }
+	        }
+	    }]
+	}
+	); 
+
+	reduction_chart = Ext.create('ReductionChart',{
+		store: chartdata,
+        renderTo: Ext.get('chart'),
+		title:'Price Reductions'
+	});	
+	
+	inventory_grid.on('select', function(cellModel, record, rowIndex) {
+	        var index = inventory.find('Id',record.data.Id);
+			var merch = inventory.getAt(index);
+			merchandise_form.loadRecord(merch);
+	    });
+	
+	inventory_grid.on('edit', function(rowEditing , record) {
+			var index = inventory.find('Id',record.newValues.Id);
+			var merch = inventory.getAt(index);
+			merchandise_form.loadRecord(merch); //load any new values into form
+		});
+	
+	InventoryControlRemote.getRecords(function(records,mes) {
+		inventory.loadData(records);
+		chartdata.calcReduction(records,chartdata);
+	});
+	
+	inventory.on('update',function( store, record, operation, eOpts ) {
+	    InventoryControlRemote.updateMerchandise(record.data,function(res,evt) {
+			console.log(inventory.getRange());
+			record.set({Price_Reduction__c:res});	
+			chartdata.calcReduction(inventory.getRange(),chartdata);
+		});
+	})
+});
+</script>
+</head>
+<body>
+<div style="border: 1px solid #ccc; height: 900px;">
+<div style="padding: 10px; padding-left: 250px;">
+<div style="width: 950px;">
+
+<div id='datagrid' style="float:left"></div>
+<div id="form"></div>
+<br clear="all" />
+<div id='chart' style="float:left; height: 300px; padding: 10px;">
+<b>&nbsp;Overall Reduction</b>
+<span id='chart'></span>
+</div>
+<div id='learnmore' style="border: 1px solid #ccc; padding: 20px;  width:900px; height: 400px;">
+	<b>Learn More</b>
+	<hr />
+		<B>The Basics</B>
+			<UL>
+				<LI><a target="_doc" href="http://developer.force.com">Developer Force</a></LI>
+				<LI><a target="_doc" href="http://bit.ly/dfc_beg_workbook">Basic Workbook</a></LI>
+				<LI><a target="_doc" href="http://bit.ly/dfc_adv_workbook">Advanced Workbook</a></LI>
+			</UL>
+		<B>JavaScript Remoting</B>
+			<UL>
+				<LI><a target="_doc" href="http://www.salesforce.com/us/developer/docs/pages/Content/pages_js_remoting.htm">JavaScript Remoting for Apex Controllers</a></LI>
+				<LI><a target="_doc" href="http://blogs.developerforce.com/developer-relations/2011/05/tale-of-two-visualforce-pages-actionfunction-and-javascript-remoting.html">Tale of Two Visualforce Pages</a></LI>
+			</UL>
+		<B>REST API / Apex REST</B>
+			<UL>
+				<LI><a target="_doc" href="http://wiki.developerforce.com/page/REST_API">REST API</a></LI>
+				<LI><a target="_doc" href="http://wiki.developerforce.com/page/Creating_REST_APIs_using_Apex_REST">Creating REST APIs using Apex REST</a></LI>
+			</UL>
+		<B>Streaming API</B>
+			<UL>
+				<LI><a target="_doc" href="http://www.salesforce.com/us/developer/docs/api_streaming/">Streaming API Developer Guide</a></LI>
+			</UL>
+			
+		<B>Invoice Creator Demo on Github</B>
+		<UL>
+			<LI><a target="_doc" href="http://sencha-demos.herokuapp.com/sencha_heroku">github.com/joshbirk/InventoryExtDemo</a></LI>
+		</UL>
+
+
+</div>
+
+</div>
+</div>
+</div>
+
+</body>
+
+</apex:page>

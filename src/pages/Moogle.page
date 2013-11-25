@@ -1,0 +1,181 @@
+<apex:page controller="MoogleController" showHeader="true" sidebar="true" standardStyleSheets="true">
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<apex:includeScript value="{!$Resource.cometd}"/>
+	<apex:includeScript value="{!$Resource.jquery}"/>
+	<apex:includeScript value="{!$Resource.jquery_cometd}"/>
+	<apex:includeScript value="{!URLFOR($Resource.jqui,'/ui/jquery-ui.js')}"/>
+	<apex:includeScript value="{!URLFOR($Resource.underscore)}" />
+	
+	<script>
+	j$ = jQuery.noConflict();
+	j$(document).ready(function() {
+		  template = j$("#invoices_template").html();
+	    
+      j$("#moogle-button").click(function() {
+	      searchInvoices(j$("#moogle-keyword").val());
+	    });
+
+      j$("[id*=owner-contact]").hide();
+
+
+	    j$('#show_button').click(function() {
+	  		window.webkitNotifications.requestPermission();
+		});
+	    if (window.webkitNotifications.checkPermission() == 0) { j$('#show_button').hide(); }
+	    
+	    j$.cometd.init({
+			  url: window.location.protocol+'//'+window.location.hostname+'/cometd/24.0/',
+			  requestHeaders: { Authorization: 'OAuth {!$Api.Session_ID}'}
+			});
+		// Subscribe to the push topic
+		j$.cometd.subscribe('/topic/ReducedPrices', function(message) {
+		   if (window.webkitNotifications.checkPermission() == 0) { 
+			console.log(message);
+	    	data = message.data.sobject;
+	    	noti = window.webkitNotifications.createNotification(null, 'Price Reduction', data.Name +': $'+data.Price__c);
+        noti.data = data;
+			  noti.show();
+        noti.onclick = function(){
+            window.focus();
+            console.log(this.data.Name);
+            j$("#moogle-keyword").val(this.data.Name);
+            searchInvoices(this.data.Name);
+            this.cancel();
+            };
+	  		}
+		});
+
+	});
+
+  function searchInvoices(keyword) {
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.MoogleController.searchInvoices}',keyword, function(res,mes) {
+      clearUser();
+
+      j$("#moogle-results").html(_.template(template,{items:res}));
+      j$(".update-invoice").click(function() {
+        updateInvoice(j$(this).attr("data-id"));
+      });
+      j$(".owner").click(function() {
+		    getUser(j$(this).attr("data-id"));
+		    j$(this).effect("highlight", {}, 3000);
+        j$("id*=owner-contact").show();
+	     });
+
+
+    });
+
+
+  }
+
+  function updateInvoice(invoiceId) {
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.MoogleController.updateInvoice}',invoiceId, function(res,mes) {
+        searchInvoices(j$("#moogle-keyword").val());
+      });
+  }
+
+	</script>
+
+
+	<style type="text/css">
+
+      .form-moogle, .result {
+        max-width: 400px;
+        padding: 19px 29px 29px;
+        }
+
+      .result { border-bottom-color: black; }
+      .owner { cursor: pointer; cursor: hand;}
+
+      .form-moogle .form-moogle-heading,
+      .form-moogle .checkbox {
+        margin-bottom: 10px;
+      }
+      .form-moogle input[type="text"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+
+      #moogle-user-view {
+      	position: absolute;
+      	top: 10px;
+      	left: 700px;
+      	max-width: 400px;
+      }
+
+      #moogle-button { height: 30px; }
+
+     </style>
+</head>
+
+<div class="container">
+<button id="show_button">Enable Notifications</button>
+<div class="form-moogle">
+	<input type="text" id="moogle-keyword" /><button id="moogle-button">Moogle It!</button>
+<apex:pageBlock title="Invoices">
+            <apex:pageBlockSection columns="1">
+    		<div id="moogle-results" class="pbBody"></div>
+    		</apex:pageBlockSection>
+</apex:pageBlock>
+<script type="text/html" id='invoices_template'>
+	<table class="list" cellspacing='0' cellpadding='0' border='0' >
+		        <thead class="rich-table-head">
+		            <tr class="headerRow">
+		                <th>Invoice</th>
+		                <th>Status</th>
+						<th>Owner</th>
+						<td>Action</th>
+		            </tr>
+		        </thead>
+		        <tbody> 
+	<%
+        // repeat items 
+        _.each(items,function(item){         
+    %>
+       <tr class="owner" data-id="<%=item.OwnerId%>"><td><a href="/<%= item.Id %>" target="_new"><%= item.Name %></td><td><%= item.Status__c %></td><td>
+        <div >
+            <%= item.Owner.Name %>
+        </div>
+        </td>
+        <td>
+        	 <button class="update-invoice" data-id="<%= item.Id %>">Set Negotiating</button>
+        </td>
+    <%
+        });
+    %>
+    </table>
+	  </script>
+</div>
+</div>
+<div id="moogle-user-view">
+
+<apex:form>
+<apex:actionFunction  name="getUser" action="{!getUser}" rerender="userPanel">
+	<apex:param name="userId" value="" assignTo="{!userId}"/>
+</apex:actionFunction>
+<apex:actionFunction  name="clearUser" action="{!clearUser}" rerender="userPanel" oncomplete="j$('[id*=owner-contact]').hide();" />
+<apex:outputPanel id="userPanel" html-data-id="{!invoiceOwner.Id}">
+	<apex:pageBlock title="Invoice Owner">
+            <apex:pageBlockSection columns="2">
+                <apex:outputField value="{!invoiceOwner.Name}"/>
+                <apex:outputField value="{!invoiceOwner.Phone}"/>
+                <apex:outputField value="{!invoiceOwner.Email}"/>
+                <apex:commandButton id="owner-contact" value="Contact Owner" />
+            </apex:pageBlockSection>
+        </apex:pageBlock>
+</apex:outputPanel>
+</apex:form>
+
+</div>
+
+
+
+
+
+</html>
+</apex:page>

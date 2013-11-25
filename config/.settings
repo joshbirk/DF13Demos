@@ -1,0 +1,19 @@
+{
+    "username": "josh@df.demo", 
+    "environment": "developer", 
+    "project_name": "DF Demos", 
+    "workspace": "/Users/joshua.birk/Projects/ForceDotCom", 
+    "org_url": "", 
+    "namespace": "", 
+    "id": "8GQ3YRZPX7ZVUMBMZPOCD62WSGJT1AIX", 
+    "metadata_container": "1dci00000001twRAAQ", 
+    "subscription": [
+        "ApexClass", 
+        "ApexComponent", 
+        "ApexPage", 
+        "ApexTrigger", 
+        "CustomObject", 
+        "Profile", 
+        "StaticResource"
+    ]
+}

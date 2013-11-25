@@ -1,0 +1,117 @@
+<apex:page controller="CoogleController" showHeader="false" sidebar="false" standardStyleSheets="false">
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<apex:includeScript value="{!URLFOR($Resource.jquery)}" />
+	<apex:includeScript value="{!URLFOR($Resource.underscore)}" />
+	<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet" />
+  <script src="http://birkweinre.herokuapp.com/target/target-script-min.js#anonymous"></script>
+	<script>
+	var found_cases = new Array();
+	var cases_template = {};
+
+
+	j$ = jQuery.noConflict();
+	j$(document).ready(function() {
+		template = j$("#cases_template").html();
+    j$("#coogle-button").click(function() {
+        console.log(j$(this));
+        console.log('Setting Search Handler');
+        searchHandler();
+    })
+	});
+
+
+  function searchHandler() {
+   // timeout = window.setTimeout(function() {
+        searchCases(j$("#coogle-keyword").val());
+   //   }, 2000);
+
+  }
+
+
+  function searchCases(keyword) {
+    
+    CoogleController.searchCases(keyword, function(res,mes) {
+      found_cases = res;
+      j$("#coogle-results").html(_.template(template,{items:found_cases}));
+      j$(".close-case").click(function() {
+        updateCase(j$(this).attr("data-id"));
+      });
+    });
+
+
+  }
+
+  function updateCase(caseId) {
+    CoogleController.updateCase(caseId, function(res,mes) {
+        CoogleController.searchCases(j$("#coogle-keyword").val(), function(res,mes) {
+          found_cases = res;
+          j$("#coogle-results").html(_.template(template,{items:found_cases}));
+          j$(".close-case").click(function() {
+            updateCase(j$(this).attr("data-id"));
+          });
+        });
+      });
+  }
+
+	</script>
+
+
+	<style type="text/css">
+
+      .form-coogle, .result {
+        max-width: 500px;
+        padding: 19px 29px 29px;
+        margin: 0 auto 20px;
+        background-color: #fff;
+        border: 1px solid #e5e5e5;
+        -webkit-border-radius: 5px;
+           -moz-border-radius: 5px;
+                border-radius: 5px;
+        -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+           -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+                box-shadow: 0 1px 2px rgba(0,0,0,.05);
+      }
+
+      .result { border-bottom-color: black; }
+
+      .form-coogle .form-coogle-heading,
+      .form-coogle .checkbox {
+        margin-bottom: 10px;
+      }
+      .form-coogle input[type="text"],
+      .form-coogle input[type="password"] {
+        font-size: 16px;
+        height: auto;
+        margin-bottom: 15px;
+        padding: 7px 9px;
+      }
+     </style>
+</head>
+
+<div class="container">
+<div class="form-coogle">
+	<h2>Coogle</h2> 
+	<input type="text" id="coogle-keyword" /><button id="coogle-button">Coogle It!</button>
+  <hr /><a href="/500/o">Return to Cases</a>
+<div id="coogle-results" class="pbBody"></div>
+<script type="text/html" id='cases_template'>
+	 <table id="dataTable" class="table table-striped table-bordered table-condensed">
+   <tr><td><b>Case Subject</b></td><td><b>Status</b></td><td><b>Action</b></td></tr>
+  <%
+        // repeat items 
+        _.each(items,function(item){         
+    %>
+        <tr><td><a href="/<%= item.Id %>"><%= item.Subject %></a></td><td><%= item.Status %></td>
+            <td><button class="close-case" data-id="<%= item.Id %>">Set Closed</button></td></tr>
+    <%
+        });
+    %>
+    </table>
+	  </script>
+</div>
+</div>
+</html>
+</apex:page>

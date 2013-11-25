@@ -1,0 +1,27 @@
+{
+    "folders": [
+        {
+            "path": "/Users/joshua.birk/Projects/ForceDotCom/DF Demos"
+        }
+    ], 
+    "settings": {
+        "auto_complete_triggers": [
+            {
+                "characters": ".", 
+                "selector": "source - comment"
+            }, 
+            {
+                "characters": ":", 
+                "selector": "text.html - comment"
+            }, 
+            {
+                "characters": "<", 
+                "selector": "text.html - comment"
+            }, 
+            {
+                "characters": " ", 
+                "selector": "text.html - comment"
+            }
+        ]
+    }
+}

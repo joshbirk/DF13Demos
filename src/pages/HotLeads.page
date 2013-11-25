@@ -1,0 +1,124 @@
+<apex:page showHeader="true" controller="LeadListController" tabstyle="lead" sidebar="false">
+<apex:includeScript value="{!$Resource.cometd}"/>
+<apex:includeScript value="{!$Resource.jquery}"/>
+<apex:includeScript value="{!$Resource.jquery_cometd}"/>
+<apex:includeScript value="{!URLFOR($Resource.jqui,'/ui/jquery-ui.js')}"/>
+<apex:includeScript value="{!$Resource.underscore}"/>
+<script type="text/javascript">
+var hotLeads = [];
+
+function updateHotLeads(updates) {
+	//Check our action
+	console.log(updates);
+	HOL = updates.data.sobject;
+	console.log(HOL);
+	data = {'Id':HOL.Lead__c,'Name':HOL.Lead_Name__c,'State':HOL.State__c,'Email':HOL.Email__c,'Company':HOL.Company__c};
+	console.log(data);
+	if(HOL.Action__c.indexOf('Add') >= 0) {
+		console.log("Adding");
+		hotLeads.push(data);
+	}
+	if(HOL.Action__c.indexOf('Update') >= 0) {
+		console.log("Updating");
+		for (var i = 0, l = hotLeads.length; i < l; i++) {
+		    if (hotLeads[i].Id == data.Id) {
+		        hotLeads[i] = data;
+				console.log("Match Found");
+		        break;
+		    }
+		}
+	}
+	if(HOL.Action__c.indexOf('Remove') >= 0) {
+		console.log("Removing");
+	//	hotLeads = _.without(hotLeads, _.findWhere(hotLeads, {Id: data.Id}));
+		new_hotLeads = new Array();
+		for (var i = 0, l = hotLeads.length; i < l; i++) {
+		    if (hotLeads[i].Id != data.Id) {
+		        new_hotLeads.push(hotLeads[i]);
+		        console.log("Adding Record");
+			} else {
+				console.log("Skipping Record...");
+			}
+		}
+		console.log(new_hotLeads);
+		hotLeads = new_hotLeads;
+	}
+	
+	console.log(hotLeads);
+	template = $("#holList").html();
+	$("#leadTable").html(_.template(template,{items:hotLeads}));
+	$("#lead-"+data.Id).effect("highlight", {}, 3000);
+	
+	if (window.webkitNotifications.checkPermission() == 0) { 
+		console.log("Alert!");
+	    noti = window.webkitNotifications.createNotification(null, 'Hot Lead Action', HOL.Action__c +': '+data.Name);
+		noti.show();
+	  }
+	
+	
+	console.log("Done!");
+}
+
+
+(function($){
+$(document).ready(function() {
+	
+	$('#show_button').click(function() {
+	  window.webkitNotifications.requestPermission();
+		});
+	
+	var template = $("#holList").html();
+	LeadListController.getHotLeads(function(res,mes) {
+		hotLeads = res;
+		$("#leadTable").html(_.template(template,{items:hotLeads}));
+	});
+	
+// Connect to the CometD endpoint
+$.cometd.init({
+  url: window.location.protocol+'//'+window.location.hostname+'/cometd/24.0/',
+  requestHeaders: { Authorization: 'OAuth {!$Api.Session_ID}'}
+});
+// Subscribe to the push topic
+$.cometd.subscribe('/topic/HOL', function(message) {
+   updateHotLeads(message); 
+});
+});
+})(jQuery)
+</script>
+  <h1>Hot Open Leads</h1><button id="show_button">Enable Notifications</button>
+    <apex:pageBlock >
+      <apex:outputPanel id="form">
+	  <div id="leadTable" class="pbBody"></div>
+      <script type="text/html" id='holList'>
+		<table class="list" cellspacing='0' cellpadding='0' border='0' >
+		        <thead class="rich-table-head">
+		            <tr class="headerRow">
+		                <th>Name</th>
+		                <th>State</th>
+						<th>Company</th>
+						<th>Email</th>
+		            </tr>
+		        </thead>
+		        <tbody>
+		            <%
+		                // repeat items 
+		                _.each(items,function(item){         
+		            %>
+		                <tr id="lead-<%= item.Id %>" class="dataRow">
+		                    <!-- use variables -->
+		                    <td><a href="/><%= item.Id %>"><%= item.Name %></a></td>
+		                    <td><%= item.State %></td>
+							<td><%= item.Company %></td>
+							<td><%= item.Email %></td>						
+		                </tr>
+		            <%
+		                });
+		            %>
+		        </tbody>
+		    </table>
+
+
+	  </script>
+      </apex:outputPanel>
+    </apex:pageBlock>
+</apex:page>

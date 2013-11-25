@@ -1,0 +1,7 @@
+<apex:page >
+    <apex:insert name="detail" />
+        
+    <div style="position:relative; clear:all; bottom: 0px; left: 0px; width:100%;"> 
+        <apex:insert name="footer" />
+    </div>
+</apex:page>
